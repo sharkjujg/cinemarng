@@ -348,7 +348,7 @@ async function achievementsPage() {
   const got = rows.filter((r) => r.v >= r.a.goal).length;
   const groups = [...new Set(rows.map((r) => r.a.group))];
   show('Achievements', `${h1('Achievements')}
-    <p><b>${fmtNum(got)}</b> of <b>${fmtNum(rows.length)}</b> unlocked. They are worked out from your saved rolls and the pool, and they scale with it: ${fmtNum(pool.n)} ${N} means ${fmtNum(rows.length)} achievements, with discovery, point and shelf goals sized to the pool. One roll a day makes most of these long-term goals.</p>
+    <p><b>${fmtNum(got)}</b> of <b>${fmtNum(rows.length)}</b> unlocked. They are worked out from your saved rolls and the pool, and they scale with it: a pool of ${fmtNum(pool.n)} ${N} gives ${fmtNum(rows.length)} achievements, with discovery, point and shelf goals sized to the pool. One roll a day makes most of these long-term goals.</p>
     <progress max="${rows.length}" value="${got}" aria-label="Achievements unlocked"></progress>
     <div class="filters"><label>Search <input id="aq" type="search"></label>
       <label>Group <select id="ag"><option value="">All</option>${groups.map((g) => `<option>${esc(g)}</option>`).join('')}</select></label>
