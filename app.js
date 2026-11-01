@@ -3,7 +3,7 @@ import site from './site.js';
 import { RULES, RULESET, TIERS, badgeTier, evaluatePool, randomIndex, dayKey, nextReset, weekStartKey, rollId, parseRollId, level, fmtPct, fmtNum, oneIn, shareText } from './engine.js';
 import { TIER_RANK, buildAchievements, progressOf, valueOf, unlockedIds } from './achievements.js';
 
-const KEY = `${site.key}.v1`;
+const KEY = `${site.key}.${site.store ?? 'v1'}`; // bump site.store when a pool is replaced in place: saved rolls hold indexes into the old pool
 const THEME_KEY = `${site.key}.theme`;
 const app = document.getElementById('app');
 const live = document.getElementById('live');
