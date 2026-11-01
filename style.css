@@ -1,0 +1,109 @@
+:root {
+  --bg: #f6f7f9; --fg: #14171f; --muted: #576071; --card: #fff; --line: #d9dde5; --soft: #eceef3;
+  --accent: #a8331b; --accent-fg: #fff;
+  --t-mythic: #b3128f; --t-anomaly: #c4381a; --t-epic: #6d3fd6; --t-rare: #1b66c9;
+  --t-uncommon: #1d7f4a; --t-common: #576071; --t-low: #6b707c;
+  color-scheme: light;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) { color-scheme: dark;
+    --bg: #0f1218; --fg: #eceff5; --muted: #a1a9b8; --card: #171b24; --line: #2a303d; --soft: #202531;
+    --accent: #ff9b7a; --accent-fg: #0f1218;
+    --t-mythic: #ff7ad9; --t-anomaly: #ff8a6b; --t-epic: #b79bff; --t-rare: #6fb0ff;
+    --t-uncommon: #5fd69a; --t-common: #a1a9b8; --t-low: #8d93a0; }
+}
+:root[data-theme="dark"] { color-scheme: dark;
+  --bg: #0f1218; --fg: #eceff5; --muted: #a1a9b8; --card: #171b24; --line: #2a303d; --soft: #202531;
+  --accent: #ff9b7a; --accent-fg: #0f1218;
+  --t-mythic: #ff7ad9; --t-anomaly: #ff8a6b; --t-epic: #b79bff; --t-rare: #6fb0ff;
+  --t-uncommon: #5fd69a; --t-common: #a1a9b8; --t-low: #8d93a0; }
+
+* { box-sizing: border-box; }
+body { margin: 0; background: var(--bg); color: var(--fg); font: 16px/1.5 system-ui, -apple-system, "Segoe UI", sans-serif; }
+a { color: var(--accent); }
+h1 { font-size: 1.7rem; line-height: 1.2; margin: 0 0 .5rem; }
+h2 { font-size: 1.15rem; margin: 1.5rem 0 .5rem; }
+h1:focus { outline: none; }
+:focus-visible { outline: 3px solid var(--accent); outline-offset: 2px; }
+.sr, .skip:not(:focus) { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+.skip { background: var(--accent); color: var(--accent-fg); padding: .5rem 1rem; z-index: 9; }
+
+.top { display: flex; flex-wrap: wrap; align-items: center; gap: .25rem 1rem; padding: .6rem 1rem; background: var(--card); border-bottom: 1px solid var(--line); }
+.brand { font-weight: 800; font-size: 1.25rem; text-decoration: none; color: var(--fg); }
+.top nav { display: flex; flex-wrap: wrap; gap: .1rem .9rem; order: 3; flex-basis: 100%; }
+@media (min-width: 36rem) { .top nav { order: 0; flex: 1; } }
+.top nav a { color: var(--fg); text-decoration: none; padding: .25rem 0; border-bottom: 2px solid transparent; }
+.top nav a[aria-current] { border-color: var(--accent); font-weight: 600; }
+
+main { max-width: 46rem; margin: 0 auto; padding: 1.25rem 1rem 2rem; min-height: 60vh; }
+footer { max-width: 46rem; margin: 0 auto; padding: 1rem; color: var(--muted); font-size: .85rem; border-top: 1px solid var(--line); }
+.muted { color: var(--muted); }
+.small { font-size: .875rem; }
+
+button, .btn { font: inherit; font-weight: 600; padding: .6rem 1.1rem; border-radius: .6rem; border: 1.5px solid var(--accent); background: transparent; color: var(--accent); cursor: pointer; text-decoration: none; display: inline-block; }
+button.primary { background: var(--accent); color: var(--accent-fg); font-size: 1.1rem; padding: .8rem 1.6rem; }
+button:disabled { opacity: .6; cursor: default; }
+#theme { margin-left: auto; padding: .25rem .7rem; font-size: .85rem; border-color: var(--line); color: var(--muted); }
+.row { display: flex; flex-wrap: wrap; gap: .6rem; align-items: center; margin: .75rem 0; }
+
+.card { background: var(--card); border: 1px solid var(--line); border-radius: 1rem; padding: 1rem; margin: 1rem 0; }
+.notice { background: var(--soft); border-radius: .6rem; padding: .6rem .9rem; font-size: .9rem; }
+.error { border-left: 4px solid var(--t-anomaly); }
+
+.who { display: flex; flex-wrap: wrap; gap: 1rem; align-items: center; }
+.avatar { width: 8rem; height: auto; border-radius: .9rem; flex: none; transition: filter .5s; }
+.who h2 { margin: 0; font-size: 1.4rem; overflow-wrap: anywhere; }
+.who p { margin: .1rem 0; overflow-wrap: anywhere; }
+.rp { font-size: 2rem; font-weight: 800; line-height: 1.1; }
+dl.facts { display: grid; grid-template-columns: max-content 1fr; gap: .2rem 1rem; margin: .75rem 0 0; font-size: .9rem; }
+dl.facts dt { color: var(--muted); } dl.facts dd { margin: 0; overflow-wrap: anywhere; }
+
+.chip { display: inline-block; padding: 0 .55rem; border: 1.5px solid var(--tc); color: var(--tc); border-radius: 99px; font-size: .8rem; font-weight: 700; white-space: nowrap; }
+.t-mythic { --tc: var(--t-mythic); } .t-anomaly { --tc: var(--t-anomaly); } .t-epic { --tc: var(--t-epic); }
+.t-rare { --tc: var(--t-rare); } .t-uncommon { --tc: var(--t-uncommon); } .t-common { --tc: var(--t-common); }
+.t-low-roll { --tc: var(--t-low); border-style: dashed; }
+.t-none { --tc: var(--t-low); border-style: dotted; }
+
+ul.badges, ul.plain { list-style: none; margin: 0; padding: 0; }
+.badges li { padding: .6rem 0; border-top: 1px solid var(--line); }
+.badges li:first-child { border-top: 0; }
+.bh { display: flex; flex-wrap: wrap; gap: .25rem .6rem; align-items: baseline; }
+.bh a { font-weight: 700; } .bh strong { margin-left: auto; }
+.badges p { margin: .15rem 0 0; font-size: .875rem; color: var(--muted); }
+.tag { font-size: .75rem; font-weight: 700; background: var(--accent); color: var(--accent-fg); padding: 0 .4rem; border-radius: .3rem; }
+details > summary { cursor: pointer; font-weight: 600; margin-top: .5rem; }
+
+.stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(8rem, 1fr)); gap: .6rem; margin: 1rem 0; }
+.stats div { background: var(--card); border: 1px solid var(--line); border-radius: .8rem; padding: .6rem .8rem; }
+.stats b { display: block; font-size: 1.4rem; }
+table { width: 100%; border-collapse: collapse; font-size: .9rem; }
+th, td { text-align: left; padding: .4rem .5rem; border-bottom: 1px solid var(--line); }
+td.n, th.n { text-align: right; font-variant-numeric: tabular-nums; }
+.filters { display: flex; flex-wrap: wrap; gap: .5rem; }
+input, select, textarea { font: inherit; padding: .45rem .6rem; border-radius: .5rem; border: 1px solid var(--line); background: var(--card); color: var(--fg); max-width: 100%; }
+textarea { width: 100%; }
+progress { width: 100%; accent-color: var(--accent); }
+
+/* Reveal: silhouette first, then identity, rarity, badges. Opacity keeps layout stable and text readable by assistive tech. */
+.rv [data-s] { transition: opacity .5s; }
+.rv:not(.s1) .avatar { filter: brightness(0) opacity(.3); }
+.rv:not(.s1) [data-s="1"], .rv:not(.s2) [data-s="2"], .rv:not(.s3) [data-s="3"] { opacity: 0; }
+@media (prefers-reduced-motion: reduce) { .rv [data-s], .avatar { transition: none; } }
+
+/* Reveal flourishes: a reel of names, badges arriving one by one, a pulse and a burst for the rare tiers, unlock cards. */
+.rv { position: relative; }
+.reel { font-size: 1.4rem; font-weight: 700; text-align: center; margin: 1rem 0; min-height: 2.1rem; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; color: var(--muted); }
+.rv .badges li { transition: opacity .45s ease, transform .45s ease; transition-delay: calc(var(--i, 0) * 90ms); }
+.rv:not(.s3) .badges li { opacity: 0; transform: translateY(10px); }
+.fx { animation: pulse 1.2s ease-out 2; }
+@keyframes pulse { 0% { box-shadow: 0 0 0 0 color-mix(in srgb, var(--accent) 55%, transparent); } 100% { box-shadow: 0 0 0 22px transparent; } }
+.burst { position: absolute; inset: 0; overflow: hidden; pointer-events: none; }
+.burst i { position: absolute; left: 50%; top: 28%; width: .5rem; height: .85rem; background: hsl(var(--h) 85% 58%); opacity: 0; animation: fly 1.5s ease-out var(--d) forwards; }
+@keyframes fly { 0% { opacity: 1; transform: translate(0, 0) rotate(0); } 100% { opacity: 0; transform: translate(var(--x), var(--y)) rotate(540deg); } }
+.unlocks li { display: flex; flex-direction: column; gap: .1rem; padding: .5rem .8rem; margin: .45rem 0; border: 1.5px solid var(--accent); border-radius: .7rem; background: var(--card); animation: slidein .5s ease both; animation-delay: calc(var(--i, 0) * 130ms); }
+@keyframes slidein { from { opacity: 0; transform: translateX(-18px); } }
+.ach.got { border-color: var(--t-uncommon); }
+.ach progress { margin-top: .25rem; }
+button:active { transform: scale(.97); }
+@media (prefers-reduced-motion: reduce) { .fx, .burst i, .unlocks li { animation: none; } .rv .badges li { transition: none; } }
+img.avatar { object-fit: contain; max-height: 15rem; background: var(--soft); }
