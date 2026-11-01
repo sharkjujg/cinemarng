@@ -114,6 +114,8 @@ ok('tier counts add up to the pool size', Object.values(pool.tierCounts).reduce(
 ok('Mythic holds at most 1% of the pool', (pool.tierCounts.Mythic || 0) * 100 <= pool.n);
 ok('a typical roll earns points (median RP > 0): a pool of only rare badges would make most rolls worthless', pool.scores.median > 0);
 ok('Low Roll holds at most 25% of the pool (a bigger share means a tie pile-up at the bottom)', (pool.tierCounts['Low Roll'] || 0) * 4 <= pool.n);
+const empty = pool.evals.filter((e) => e.awards.length === 0).length;
+ok(`every record earns at least one badge (${empty} of ${pool.n} earn none): a 0 RP roll feels broken`, empty === 0);
 poolChecks(raw, pool, ok);
 
 // --- the site config loads, and every real record renders through it (a syntax error or a bad record would otherwise only show in the app) ---

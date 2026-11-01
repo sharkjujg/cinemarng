@@ -32,6 +32,8 @@ export const cases = [
   ['language-spotlight', { languages: [] }, false],
   ['silent-evidence', { genres: ['silent film'] }, true], ['silent-evidence', { genres: ['drama film'], year: 1925 }, false], // the year alone never earns it
   ['award-shelf', { awards: ['Academy Award for Best Picture'] }, true], ['award-shelf', { awards: [] }, false], ['award-shelf', { awards: undefined }, false],
+  ['new-millennium', { year: 2000 }, true], ['new-millennium', { year: 1999 }, false], ['new-millennium', { year: null }, false], ['new-millennium', { year: 0 }, false],
+  ['feature-length', { runtime: 61 }, true], ['feature-length', { runtime: 149 }, true], ['feature-length', { runtime: 60 }, false], ['feature-length', { runtime: 150 }, false], ['feature-length', { runtime: null }, false],
 ];
 
 export function poolChecks(raw, pool, ok) {

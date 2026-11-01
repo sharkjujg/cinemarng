@@ -1,9 +1,10 @@
 // Generic game logic, no DOM and no network. Identical in every RNG-style site; the badge rules live in rules.js.
 // Weights, tiers, and the day boundary follow the building plans (RP = 100 / p, integer tier maths, UTC reset).
-import { RULES, prep } from './rules.js';
+import * as site from './rules.js';
 export { RULES, norm } from './rules.js';
 
-export const RULESET = '1';
+const { RULES, prep } = site;
+export const RULESET = site.RULESET ?? '1'; // a site bumps this in rules.js when its badge list changes
 export const TIERS = ['Mythic', 'Anomaly', 'Epic', 'Rare', 'Uncommon', 'Common'];
 export const LEVELS = [1, 2, 5, 10, 25, 50, 100];
 

@@ -2,6 +2,8 @@
 // test(m, poolDate) and evidence(m, poolDate) read the prepared member from prep(); `deferred` rules stay inactive.
 
 // Raw and normalized values are kept apart: m.title is raw, m.t is normalized.
+export const RULESET = '2'; // 2: common band badges added so no record earns nothing
+
 export const norm = (s) => s.normalize('NFKC').toLowerCase();
 const tokens = (s) => s.split(/\s+/).filter((w) => /[\p{L}\p{N}]/u.test(w)); // whitespace-separated words; bare punctuation is not a word
 const list = (a) => (Array.isArray(a) ? a : []);
@@ -65,4 +67,8 @@ export const RULES = [
     test: (m) => m.awards.length > 0, evidence: (m) => `Wikidata records: ${m.awards.join('; ')}` },
   { id: 'first-feature', name: 'First Feature', family: 'Editorial', rule: 'A reviewed filmography proves it is the director\'s first feature',
     deferred: 'No reviewed filmography evidence exists yet, and a pool this size cannot prove a debut by itself. The plan says to keep it inactive.' },
+  { id: 'new-millennium', name: 'New Millennium', family: 'Release era', rule: 'First released in 2000 or later',
+    test: (m) => m.year !== null && m.year >= 2000, evidence: (m) => `${m.title} was first released in ${m.year}` },
+  { id: 'feature-length', name: 'Feature Length', family: 'Runtime', rule: 'Runtime from 61 through 149 minutes',
+    test: (m) => m.runtime !== null && m.runtime >= 61 && m.runtime <= 149, evidence: mins },
 ];
