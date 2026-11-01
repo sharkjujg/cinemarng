@@ -9,9 +9,9 @@ const app = document.getElementById('app');
 const live = document.getElementById('live');
 const RULE = Object.fromEntries(RULES.map((r) => [r.id, r]));
 const esc = (s) => String(s).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]);
-const chip = (t) => `<span class="chip t-${t ? t.toLowerCase().replace(' ', '-') : 'none'}">${t ?? 'Inactive'}</span>`;
+const tcls = (t) => `t-${t ? t.toLowerCase().replace(' ', '-') : 'none'}`;
+const chip = (t) => `<span class="chip ${tcls(t)}">${t ?? 'Inactive'}</span>`;
 const reduced = () => matchMedia('(prefers-reduced-motion: reduce)').matches;
-const SHOWN_OPEN = ['Mythic', 'Anomaly', 'Epic', 'Rare']; // these badge tiers start expanded; the rest collapse
 const N = site.nouns;
 
 // ---- storage: every read and write is guarded; the page still works without it ----
@@ -53,52 +53,67 @@ const h1 = (t) => `<h1 tabindex="-1">${t}</h1>`;
 const notFound = (msg = 'That page does not exist.') => show('Not found', `${h1('Not found')}<p>${esc(msg)} <a href="#/">Back to the roll</a></p>`);
 const inactiveWhy = (r, s) => (s.k ? '' : r.deferred ? `Not active: ${r.deferred}` : `No ${site.noun} in this pool matches, so it cannot be earned or ranked.`);
 
-function badgeLi(a, m, roll, pool) {
-  const r = RULE[a.id], s = pool.stats[a.id];
-  return `<li><div class="bh"><a href="#/badges/${r.id}">${esc(r.name)}</a>${chip(s.tier)}${roll.fresh?.includes(a.id) ? '<span class="tag">New</span>' : ''}<strong>${a.rp ? '+' + fmtNum(a.rp) : '0'} RP</strong></div>
-    <p>${esc(r.evidence(m, pool.meta.publishedAt))}. ${s.k} of ${fmtNum(pool.n)} ${N} have it (${fmtPct(s.k, pool.n)}, about 1 in ${oneIn(s.k, pool.n)}).${a.rp ? '' : ` Earned for your collection but adds 0 RP: a rarer badge in the "${esc(r.family)}" family counted instead.`}</p></li>`;
+// A family's best badge is the card; the other badges it suppressed nest underneath as "earned, 0 RP added".
+function groupAwards(roll) {
+  const byFam = new Map();
+  for (const a of roll.awards) {
+    const f = RULE[a.id].family;
+    if (!byFam.has(f)) byFam.set(f, []);
+    byFam.get(f).push(a);
+  }
+  const groups = [...byFam.values()].map((list) => { list.sort((x, y) => y.rp - x.rp || y.nominal - x.nominal); return { main: list[0], subs: list.slice(1) }; });
+  return groups.sort((a, b) => b.main.nominal - a.main.nominal || b.main.rp - a.main.rp); // best first, like the page reads
+}
+// Seconds between badge reveals. The list is laid out best first, but it appears from the bottom up: worst badge first, best last.
+const STEP = (n) => Math.min(0.42, 3.2 / Math.max(1, n));
+const revealMs = (n) => Math.round(((n - 1) * STEP(n) + 0.8) * 1000);
+
+function bcard(g, i, n, m, roll, pool) {
+  const a = g.main, r = RULE[a.id], s = pool.stats[a.id];
+  const delay = ((n - 1 - i) * STEP(n)).toFixed(2);
+  return `<div class="bcard ${tcls(s.tier)}" style="--d:${delay}s">
+    <div class="bhead"><a class="bname" href="#/badges/${r.id}">${esc(r.name)}</a>${chip(s.tier)}${roll.fresh?.includes(a.id) ? '<span class="tag">New</span>' : ''}<span class="pts">+${fmtNum(a.rp)} RP</span></div>
+    <p class="brule">${esc(r.rule)}</p>
+    <p class="bnote">${esc(r.evidence(m, pool.meta.publishedAt))}. ${s.k} of ${fmtNum(pool.n)} ${N} have it (${fmtPct(s.k, pool.n)}, about 1 in ${oneIn(s.k, pool.n)}).</p>
+    ${g.subs.map((b) => { const rb = RULE[b.id], sb = pool.stats[b.id]; return `<div class="bsub"><span aria-hidden="true">└</span><a href="#/badges/${rb.id}">${esc(rb.name)}</a>${chip(sb.tier)}<em>earned, 0 RP added</em></div>`; }).join('')}
+  </div>`;
 }
 
-function resultCard(roll, pool, cls = '') {
+function resultCard(roll, pool, cls = '', opts = {}) {
   const m = pool.members[roll.index];
   const head = site.header(m);
-  const sorted = [...roll.awards].sort((a, b) => b.nominal - a.nominal);
-  const big = sorted.filter((a) => SHOWN_OPEN.includes(pool.stats[a.id].tier));
-  const rest = sorted.filter((a) => !big.includes(a));
-  const li = (a) => badgeLi(a, m, roll, pool);
+  const groups = groupAwards(roll), n = groups.length;
   const facts = [...site.facts(m), ['Data captured', pool.meta.capturedAt], ['Pool and rules', `${roll.pool}, ruleset ${roll.ruleset}`]];
-  return `<article class="card rv ${cls}" aria-labelledby="who">
-    <div class="who">${site.art(m)}
-      <div>
-        <div data-s="1"><h2 id="who">${esc(head.title)}</h2><p class="muted">${esc(head.sub)}</p></div>
-        <div data-s="2"><p>${chip(roll.tier)} Top ${fmtPct(roll.c, roll.n)} of ${fmtNum(roll.n)} ${N}</p><div class="rp">${fmtNum(roll.rp)} RP</div></div>
-      </div></div>
-    <dl class="facts" data-s="1">${facts.map(([k, v, href]) => `<dt>${esc(k)}</dt><dd>${href ? `<a href="${esc(href)}" rel="noopener">${esc(v)}</a>` : esc(v)}</dd>`).join('')}</dl>
-    <div data-s="3"><h2>Badges earned (${roll.awards.length})</h2>
-      ${big.length ? `<ul class="badges">${big.map(li).join('')}</ul>` : '<p class="muted">No rare badges this time. Common badges still count toward your collection.</p>'}
-      ${rest.length ? `<details${big.length ? '' : ' open'}><summary>${rest.length} more common and uncommon badge${rest.length === 1 ? '' : 's'}</summary><ul class="badges">${rest.map(li).join('')}</ul></details>` : ''}
-    </div></article>`;
+  return `<article class="rv result ${tcls(roll.tier)} ${cls}" aria-labelledby="who">
+    <div class="art" data-s="1">${site.art(m)}</div>
+    <div class="hero" data-s="1"><h2 id="who">${esc(head.title)}</h2></div>
+    <p class="sub" data-s="1">${esc(head.sub)}</p>
+    <div class="tierline" data-s="2">${chip(roll.tier)}<span class="dot" aria-hidden="true">•</span><span class="toppct">Top ${fmtPct(roll.c, roll.n)} of ${fmtNum(roll.n)} ${N}</span></div>
+    <div class="rppill" data-s="2"><span class="rp">${fmtNum(roll.rp)} RP</span></div>
+    ${opts.lifetime != null ? `<p class="life" data-s="2"><b>${fmtNum(opts.lifetime)} RP</b><span>Your lifetime RP</span></p>` : ''}
+    ${opts.slot ? '<div id="acts" class="actions" data-s="2"></div>' : ''}
+    <details class="details" data-s="2"><summary>Details</summary><dl class="facts">${facts.map(([k, v, href]) => `<dt>${esc(k)}</dt><dd>${href ? `<a href="${esc(href)}" rel="noopener">${esc(v)}</a>` : esc(v)}</dd>`).join('')}</dl></details>
+    <section class="breakdown" data-s="3"><h2>Badge breakdown</h2><p class="count">${roll.awards.length} badge${roll.awards.length === 1 ? '' : 's'} earned</p>
+      <div class="bcards">${groups.map((g, i) => bcard(g, i, n, m, roll, pool)).join('')}</div></section>
+  </article>`;
 }
 
-function actions(roll) {
-  return `<div class="row"><button id="copy" type="button">Copy result text</button><button id="share" type="button" hidden>Share…</button>
-    <a class="btn" href="#/roll/${roll.id}">Open result page</a></div><p id="msg" class="small muted" role="status"></p>`;
+function actions(roll, next = false) {
+  return `<div class="row"><button id="share" type="button">Share</button>${next ? '<span class="next">Next roll in <b id="cd"></b></span>' : ''}</div>
+    <div class="row"><button id="copy" class="ghost" type="button">Copy text</button><a class="btn ghost" href="#/roll/${roll.id}">Result page</a></div><p id="msg" class="small muted" role="status"></p>`;
 }
 function wireActions(roll) {
   const url = location.origin + location.pathname + '#/roll/' + roll.id;
   const text = shareText(roll, url, site.name);
-  document.getElementById('copy').onclick = async () => {
+  const copy = async () => {
     const msg = document.getElementById('msg');
     try { await navigator.clipboard.writeText(text); msg.textContent = 'Copied to clipboard.'; } catch {
       msg.innerHTML = `Couldn't reach the clipboard. Select and copy this text:<textarea readonly rows="3">${esc(text)}</textarea>`;
       msg.querySelector('textarea').select();
     }
   };
-  if (navigator.share) {
-    const b = document.getElementById('share');
-    b.hidden = false;
-    b.onclick = () => navigator.share({ title: site.name, text, url }).catch(() => {});
-  }
+  document.getElementById('copy').onclick = copy;
+  document.getElementById('share').onclick = () => (navigator.share ? navigator.share({ title: site.name, text, url }).catch(() => {}) : copy());
 }
 
 // ---- achievements: derived from the player's rolls and the immutable pool ----
@@ -149,7 +164,7 @@ let timers = [];
 const later = (f, ms) => timers.push(setTimeout(f, ms));
 const every = (f, ms) => timers.push(setInterval(f, ms));
 
-const fmtCd = (ms) => { const s = Math.max(0, Math.floor(ms / 1000)); return [(s / 3600) | 0, ((s / 60) | 0) % 60, s % 60].map((x) => String(x).padStart(2, '0')).join(':'); };
+const fmtCd = (ms) => { const s = Math.max(0, Math.floor(ms / 1000)), p = (x) => String(x).padStart(2, '0'); return `${(s / 3600) | 0}H ${p(((s / 60) | 0) % 60)}M ${p(s % 60)}S`; };
 
 function draw(pool, day) {
   const index = randomIndex(pool.n);
@@ -162,22 +177,26 @@ function draw(pool, day) {
 // ---- views ----
 async function home() {
   const pool = await getPool();
-  show('', `${h1(site.headline)}
-    <p>${site.intro(pool.n)}</p>
+  show('', `<header id="head" class="pagehead">${h1(site.headline)}<p class="lede">${site.intro(pool.n)}</p></header>
     <p class="notice">${site.notice}</p>
     ${storageOk ? '' : '<p class="notice error">Your browser is blocking site storage, so today\'s roll can\'t be remembered after you leave this page.</p>'}
-    <div id="act"></div><div id="res"></div><div id="acts"></div>`);
+    <div id="act"></div><div id="res"></div><div id="unl"></div>`);
   const $ = (id) => document.getElementById(id);
 
   const showRoll = (roll, animate) => {
     const m = pool.members[roll.index];
     const fancy = animate && !reduced();
-    $('res').innerHTML = (fancy ? '<p class="reel" id="reel" aria-hidden="true"></p>' : '') + resultCard(roll, pool, animate ? '' : 's1 s2 s3');
+    const lifetime = Object.values(S.rolls).reduce((t, r) => t + r.rp, 0);
+    $('head')?.classList.add('compact');
+    $('res').innerHTML = (fancy ? '<p class="reel" id="reel" aria-hidden="true"></p>' : '') + resultCard(roll, pool, animate ? '' : 's1 s2 s3', { lifetime, slot: true });
     const card = $('res').querySelector('.rv');
-    card.querySelectorAll('.badges li').forEach((li, i) => li.style.setProperty('--i', i));
     const resetAt = nextReset(now()); // fixed at render time: recomputing it each tick would always point at the next midnight
-    $('act').innerHTML = `<p><b>Today's roll is saved.</b> Next roll in <span id="cd"></span>, at ${new Date(resetAt).toLocaleString([], { weekday: 'short', hour: 'numeric', minute: '2-digit', timeZoneName: 'short' })}.</p>${animate && !reduced() ? '<button id="skip" type="button">Skip animation</button>' : ''}`;
-    const tick = () => { const left = resetAt - now(); if (left <= 0) route(); else $('cd').textContent = fmtCd(left); };
+    $('act').innerHTML = animate && !reduced() ? '<button id="skip" type="button" class="ghost">Skip animation</button>' : '';
+    const tick = () => {
+      const left = resetAt - now(), cd = $('cd');
+      if (left <= 0) route();
+      else if (cd) { cd.textContent = fmtCd(left); cd.title = `Resets at ${new Date(resetAt).toLocaleString([], { weekday: 'short', hour: 'numeric', minute: '2-digit', timeZoneName: 'short' })}`; }
+    };
     tick(); every(tick, 1000);
     const unlocked = animate ? newUnlocks(pool, roll) : [];
     let counting = false;
@@ -186,7 +205,7 @@ async function home() {
       $('skip')?.remove(); $('reel')?.remove();
       card.classList.add('s1', 's2', 's3');
       card.querySelector('.rp').textContent = `${fmtNum(roll.rp)} RP`;
-      $('acts').innerHTML = actions(roll) + unlockList(unlocked); wireActions(roll);
+      $('acts').innerHTML = actions(roll, true); $('unl').innerHTML = unlockList(unlocked); wireActions(roll); tick();
       if (animate) live.textContent = `Revealed ${site.header(m).title}: ${roll.tier}, ${fmtNum(roll.rp)} rarity points.${unlocked.length ? ` ${unlocked.length} achievement${unlocked.length === 1 ? '' : 's'} unlocked.` : ''}`;
     };
     if (!fancy) return done();
@@ -196,7 +215,8 @@ async function home() {
     $('skip').onclick = () => { timers.forEach(clearTimeout); done(); every(tick, 1000); };
     later(() => { clearInterval(spin); $('reel').remove(); card.classList.add('s1'); }, 1100);
     later(() => { card.classList.add('s2'); counting = true; countUp(card.querySelector('.rp'), roll.rp, () => counting); flourish(card, roll.tier); }, 1800);
-    later(() => { card.classList.add('s3'); done(); }, 2500);
+    later(() => card.classList.add('s3'), 2500);
+    later(done, 2500 + revealMs(groupAwards(roll).length)); // the unlock list waits until the last badge has landed
   };
 
   const mine = S.rolls[dayKey(now())];
@@ -223,7 +243,7 @@ async function rollPage(id) {
   const roll = owned ? S.rolls[p.day] : { id, day: p.day, pool: 'v1', ruleset: RULESET, index: p.index, rp: e.rp, c: e.c, n: pool.n, tier: e.tier, awards: e.awards, fresh: [] };
   show(`Roll of ${p.day}`, `${h1(`Roll of ${p.day}`)}
     <p class="notice">${owned ? 'This is your roll.' : 'A shared roll. Rolls live in each player\'s browser in this prototype, so this page replays the draw named in the link but cannot prove it was a real daily roll.'}</p>
-    ${resultCard(roll, pool, 's1 s2 s3')}${actions(roll)}`);
+    ${resultCard(roll, pool, 's1 s2 s3', { lifetime: owned ? Object.values(S.rolls).reduce((t, r) => t + r.rp, 0) : null })}${actions(roll)}`);
   wireActions(roll);
 }
 
@@ -274,7 +294,7 @@ async function badgesPage() {
     <div class="filters"><label>Search <input id="q" type="search"></label>
       <label>Family <select id="fam"><option value="">All</option>${fams.map((f) => `<option>${esc(f)}</option>`).join('')}</select></label>
       <label>Rarity <select id="tier"><option value="">All</option>${TIERS.map((t) => `<option>${t}</option>`).join('')}<option value="-">Inactive</option></select></label></div>
-    <p id="n" class="small muted" role="status"></p><ul class="plain" id="list"></ul>`);
+    <p id="n" class="small muted" role="status"></p><ul class="plain bcards" id="list"></ul>`);
   const paint = () => {
     const q = document.getElementById('q').value.trim().toLowerCase(), fam = document.getElementById('fam').value, tier = document.getElementById('tier').value;
     const rs = RULES.filter((r) => (!q || (r.name + ' ' + r.rule).toLowerCase().includes(q)) && (!fam || r.family === fam)
@@ -283,9 +303,9 @@ async function badgesPage() {
     document.getElementById('n').textContent = `${rs.length} badge${rs.length === 1 ? '' : 's'}`;
     document.getElementById('list').innerHTML = rs.map((r) => {
       const s = pool.stats[r.id], c = count(r.id), lv = level(c);
-      return `<li class="card"><div class="bh"><a href="#/badges/${r.id}">${esc(r.name)}</a>${chip(s.tier)}<strong>${s.k ? fmtNum(s.nominal) + ' RP' : ''}</strong></div>
-        <p class="small muted">${esc(r.family)}: ${esc(r.rule)}.<br>${s.k ? `${s.k} of ${fmtNum(pool.n)} ${N} (${fmtPct(s.k, pool.n)}, about 1 in ${oneIn(s.k, pool.n)}).` : esc(inactiveWhy(r, s))}
-        ${c ? ` You: earned ${c}×, level ${lv.level}.` : ''}</p></li>`;
+      return `<li class="bcard ${tcls(s.tier)}"><div class="bhead"><a class="bname" href="#/badges/${r.id}">${esc(r.name)}</a>${chip(s.tier)}${s.k ? `<span class="pts">${fmtNum(s.nominal)} RP</span>` : ''}</div>
+        <p class="brule">${esc(r.family)}: ${esc(r.rule)}</p>
+        <p class="bnote">${s.k ? `${s.k} of ${fmtNum(pool.n)} ${N} (${fmtPct(s.k, pool.n)}, about 1 in ${oneIn(s.k, pool.n)}).` : esc(inactiveWhy(r, s))}${c ? ` You: earned ${c}×, level ${lv.level}.` : ''}</p></li>`;
     }).join('');
   };
   ['q', 'fam', 'tier'].forEach((id) => document.getElementById(id).addEventListener('input', paint));
