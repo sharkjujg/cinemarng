@@ -113,6 +113,24 @@ ok('at most one scoring badge per family', pool.evals.every((e) => { const f = e
 ok('tier counts add up to the pool size', Object.values(pool.tierCounts).reduce((s, x) => s + x, 0) === pool.n);
 ok('Mythic holds at most 1% of the pool', (pool.tierCounts.Mythic || 0) * 100 <= pool.n);
 poolChecks(raw, pool, ok);
+
+// --- the site config loads, and every real record renders through it (a syntax error or a bad record would otherwise only show in the app) ---
+{
+  const site = (await import('./site.js')).default;
+  const need = ['key', 'name', 'pageTitle', 'noun', 'nouns', 'thing', 'worldNote', 'repo', 'headline', 'intro', 'notice', 'header', 'label', 'shelves', 'facts', 'art', 'poolNotice', 'poolExtra', 'aboutData', 'terms'];
+  ok('site.js loads and defines every field app.js uses', need.every((k) => site[k] !== undefined));
+  let bad = null;
+  for (const m of pool.members) {
+    try {
+      const h = site.header(m);
+      const ok1 = typeof h.title === 'string' && h.title && typeof site.label(m) === 'string' && site.shelves(m).every(([g, l]) => typeof g === 'string' && typeof l === 'string' && l)
+        && site.facts(m).every(([k, v]) => typeof k === 'string' && typeof v === 'string' && !/\b(null|undefined|NaN)\b/.test(v)) && (site.art(m).startsWith('<svg') || site.art(m).startsWith('<img'));
+      if (!ok1) { bad = m.id; break; }
+    } catch (e) { bad = `${m.id}: ${e.message}`; break; }
+  }
+  ok(`every record renders through site.js (header, label, shelves, facts, art)${bad ? ` (first failure: ${bad})` : ''}`, bad === null);
+  ok('the pool page extra renders', typeof site.poolExtra(pool) === 'string');
+}
 const inactive = RULES.filter((r) => !pool.stats[r.id].k).map((r) => r.id);
 out.push(`INFO pool size ${pool.n}, sha256 ${[...new Uint8Array(await crypto.subtle.digest('SHA-256', buf))].map((b) => b.toString(16).padStart(2, '0')).join('')}`);
 out.push(`INFO inactive badges: ${inactive.join(', ') || 'none'}`);
