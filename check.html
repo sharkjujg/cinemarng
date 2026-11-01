@@ -112,6 +112,8 @@ ok('no award carries zero weight', pool.evals.every((e) => e.awards.every((a) =>
 ok('at most one scoring badge per family', pool.evals.every((e) => { const f = e.awards.filter((a) => a.rp).map((a) => RULES.find((r) => r.id === a.id).family); return new Set(f).size === f.length; }));
 ok('tier counts add up to the pool size', Object.values(pool.tierCounts).reduce((s, x) => s + x, 0) === pool.n);
 ok('Mythic holds at most 1% of the pool', (pool.tierCounts.Mythic || 0) * 100 <= pool.n);
+ok('a typical roll earns points (median RP > 0): a pool of only rare badges would make most rolls worthless', pool.scores.median > 0);
+ok('Low Roll holds at most 25% of the pool (a bigger share means a tie pile-up at the bottom)', (pool.tierCounts['Low Roll'] || 0) * 4 <= pool.n);
 poolChecks(raw, pool, ok);
 
 // --- the site config loads, and every real record renders through it (a syntax error or a bad record would otherwise only show in the app) ---
